@@ -206,7 +206,7 @@ const CreatePortfolio: React.FC = () => {
 
   // Auto-save form data when it changes (for new portfolios only)
   useEffect(() => {
-    if (!isEditing && formData.name) { // Only save if there's actual data
+    if (!isEditing) { // Only save if there's actual data
       debouncedSave(formData);
     }
   }, [formData, debouncedSave, isEditing]);
