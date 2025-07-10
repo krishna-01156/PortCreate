@@ -5,17 +5,19 @@ import { usePortfolio } from '../contexts/PortfolioContext';
 import { useAuth } from '../contexts/AuthContext';
 import { FormData, Education, Project, WorkExperience } from '../types';
 
+
 const CreatePortfolio: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const { addPortfolio, updatePortfolio, getPortfolio, portfolios } = usePortfolio();
   const { user } = useAuth();
+  const userKey = user ? `portfolioFormData_${user.id}` : null;
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [autoSaveStatus, setAutoSaveStatus] = useState('');
   const isEditing = Boolean(id);
-  
+
   // Suggestions state
   const [suggestions, setSuggestions] = useState({
     skills: [] as string[],
@@ -25,7 +27,7 @@ const CreatePortfolio: React.FC = () => {
     locations: [] as string[],
     companies: [] as string[]
   });
-  
+
   const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
@@ -53,7 +55,9 @@ const CreatePortfolio: React.FC = () => {
           ...data,
           timestamp: Date.now()
         };
-        localStorage.setItem('portfolioFormData', JSON.stringify(saveData));
+        if (userKey) {
+          localStorage.setItem(userKey, JSON.stringify(saveData));
+        }
         setAutoSaveStatus('Form data auto-saved');
         setTimeout(() => setAutoSaveStatus(''), 2000);
       } catch (error) {
@@ -78,7 +82,9 @@ const CreatePortfolio: React.FC = () => {
   const loadSavedFormData = useCallback(() => {
     if (!isEditing) {
       try {
-        const saved = localStorage.getItem('portfolioFormData');
+        if (!userKey) return false;
+        const saved = localStorage.getItem(userKey);
+
         if (saved) {
           const parsedData = JSON.parse(saved);
           // Check if data is less than 24 hours old
@@ -90,7 +96,7 @@ const CreatePortfolio: React.FC = () => {
             return true;
           } else {
             // Remove expired data
-            localStorage.removeItem('portfolioFormData');
+            localStorage.removeItem(userKey);
           }
         }
       } catch (error) {
@@ -115,25 +121,25 @@ const CreatePortfolio: React.FC = () => {
         // Collect skills
         portfolio.skills.forEach(skill => allSkills.add(skill));
         portfolio.technicalSkills?.forEach(skill => allSkills.add(skill));
-        
+
         // Collect achievements
         portfolio.achievements.forEach(achievement => allAchievements.add(achievement));
-        
+
         // Collect institutions
         portfolio.education.forEach(edu => {
           if (edu.institution) allInstitutions.add(edu.institution);
         });
-        
+
         // Collect technologies
         portfolio.projects.forEach(project => {
           project.technologies.forEach(tech => allTechnologies.add(tech));
         });
-        
+
         // Collect companies
         portfolio.workExperience?.forEach(exp => {
           if (exp.company) allCompanies.add(exp.company);
         });
-        
+
         // Collect locations
         if (portfolio.location) allLocations.add(portfolio.location);
       });
@@ -154,11 +160,11 @@ const CreatePortfolio: React.FC = () => {
     if (!isEditing && portfolios.length > 0 && user) {
       // First try to load saved form data
       const hasSavedData = loadSavedFormData();
-      
+
       // If no saved data, use most recent portfolio data
       if (!hasSavedData) {
         const mostRecentPortfolio = portfolios[0]; // portfolios are ordered by created_at desc
-        
+
         setFormData(prev => ({
           ...prev,
           name: mostRecentPortfolio.name || '',
@@ -236,7 +242,7 @@ const CreatePortfolio: React.FC = () => {
   const updateEducation = (id: string, field: keyof Education, value: string) => {
     setFormData(prev => ({
       ...prev,
-      education: prev.education.map(edu => 
+      education: prev.education.map(edu =>
         edu.id === id ? { ...edu, [field]: value } : edu
       )
     }));
@@ -269,7 +275,7 @@ const CreatePortfolio: React.FC = () => {
   const updateWorkExperience = (id: string, field: keyof WorkExperience, value: any) => {
     setFormData(prev => ({
       ...prev,
-      workExperience: prev.workExperience.map(exp => 
+      workExperience: prev.workExperience.map(exp =>
         exp.id === id ? { ...exp, [field]: value } : exp
       )
     }));
@@ -301,7 +307,7 @@ const CreatePortfolio: React.FC = () => {
   const updateProject = (id: string, field: keyof Project, value: any) => {
     setFormData(prev => ({
       ...prev,
-      projects: prev.projects.map(project => 
+      projects: prev.projects.map(project =>
         project.id === id ? { ...project, [field]: value } : project
       )
     }));
@@ -317,7 +323,7 @@ const CreatePortfolio: React.FC = () => {
   const addSkill = (skillToAdd?: string) => {
     const skillInput = document.getElementById('skill-input') as HTMLInputElement;
     const skill = skillToAdd || skillInput.value.trim();
-    
+
     if (skill && !formData.skills.includes(skill)) {
       setFormData(prev => ({
         ...prev,
@@ -337,7 +343,7 @@ const CreatePortfolio: React.FC = () => {
   const addTechnicalSkill = (skillToAdd?: string) => {
     const skillInput = document.getElementById('technical-skill-input') as HTMLInputElement;
     const skill = skillToAdd || skillInput.value.trim();
-    
+
     if (skill && !formData.technicalSkills.includes(skill)) {
       setFormData(prev => ({
         ...prev,
@@ -357,7 +363,7 @@ const CreatePortfolio: React.FC = () => {
   const addAchievement = (achievementToAdd?: string) => {
     const achievementInput = document.getElementById('achievement-input') as HTMLInputElement;
     const achievement = achievementToAdd || achievementInput.value.trim();
-    
+
     if (achievement && !formData.achievements.includes(achievement)) {
       setFormData(prev => ({
         ...prev,
@@ -392,7 +398,7 @@ const CreatePortfolio: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       setCurrentStep(1); // Go back to first step if validation fails
       return;
@@ -423,17 +429,20 @@ const CreatePortfolio: React.FC = () => {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
-        
+
         await addPortfolio(portfolioData);
-        
+
         // Clear saved form data on successful submission
-        localStorage.removeItem('portfolioFormData');
-        
+        if (userKey) {
+          localStorage.removeItem(userKey);
+        }
+
+
         navigate(`/portfolio/${portfolioId}`);
       }
     } catch (error: any) {
       console.error('Error saving portfolio:', error);
-      
+
       // Provide more specific error messages
       if (error.message?.includes('relation') && error.message?.includes('does not exist')) {
         setError('Database tables are not set up. Please contact support or check the migration instructions.');
@@ -466,10 +475,10 @@ const CreatePortfolio: React.FC = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const SuggestionChips = ({ suggestions: suggestionList, onSelect, type }: { 
-    suggestions: string[], 
+  const SuggestionChips = ({ suggestions: suggestionList, onSelect, type }: {
+    suggestions: string[],
     onSelect: (item: string) => void,
-    type: string 
+    type: string
   }) => {
     if (suggestionList.length === 0) return null;
 
@@ -503,7 +512,7 @@ const CreatePortfolio: React.FC = () => {
               <User className="h-6 w-6 text-primary-600" />
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Personal Information</h2>
             </div>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -517,7 +526,7 @@ const CreatePortfolio: React.FC = () => {
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Email Address *
@@ -530,7 +539,7 @@ const CreatePortfolio: React.FC = () => {
                   required
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Phone Number
@@ -542,7 +551,7 @@ const CreatePortfolio: React.FC = () => {
                   className="input-field"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Location
@@ -553,14 +562,14 @@ const CreatePortfolio: React.FC = () => {
                   onChange={(e) => handleInputChange('location', e.target.value)}
                   className="input-field"
                 />
-                <SuggestionChips 
+                <SuggestionChips
                   suggestions={suggestions.locations}
                   onSelect={(location) => handleInputChange('location', location)}
                   type="location"
                 />
               </div>
             </div>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -575,7 +584,7 @@ const CreatePortfolio: React.FC = () => {
                   placeholder="https://github.com/yourusername"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <Linkedin className="inline h-4 w-4 mr-1" />
@@ -590,7 +599,7 @@ const CreatePortfolio: React.FC = () => {
                 />
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Bio / About Me *
@@ -603,7 +612,7 @@ const CreatePortfolio: React.FC = () => {
                 required
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Profile Photo URL
@@ -618,7 +627,7 @@ const CreatePortfolio: React.FC = () => {
             </div>
           </div>
         );
-        
+
       case 2:
         return (
           <div className="space-y-6">
@@ -636,7 +645,7 @@ const CreatePortfolio: React.FC = () => {
                 <span>Add Education</span>
               </button>
             </div>
-            
+
             {formData.education.map((edu) => (
               <div key={edu.id} className="card p-6 relative">
                 <button
@@ -646,7 +655,7 @@ const CreatePortfolio: React.FC = () => {
                 >
                   <X className="h-5 w-5" />
                 </button>
-                
+
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -661,7 +670,7 @@ const CreatePortfolio: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Institution *
@@ -674,13 +683,13 @@ const CreatePortfolio: React.FC = () => {
                       placeholder="University Name"
                       required
                     />
-                    <SuggestionChips 
+                    <SuggestionChips
                       suggestions={suggestions.institutions}
                       onSelect={(institution) => updateEducation(edu.id, 'institution', institution)}
                       type="institution"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Year *
@@ -694,7 +703,7 @@ const CreatePortfolio: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Grade/GPA
@@ -710,7 +719,7 @@ const CreatePortfolio: React.FC = () => {
                 </div>
               </div>
             ))}
-            
+
             {formData.education.length === 0 && (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <GraduationCap className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -738,7 +747,7 @@ const CreatePortfolio: React.FC = () => {
                 <span>Add Experience</span>
               </button>
             </div>
-            
+
             {formData.workExperience.map((exp) => (
               <div key={exp.id} className="card p-6 relative">
                 <button
@@ -748,7 +757,7 @@ const CreatePortfolio: React.FC = () => {
                 >
                   <X className="h-5 w-5" />
                 </button>
-                
+
                 <div className="space-y-4">
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
@@ -764,7 +773,7 @@ const CreatePortfolio: React.FC = () => {
                         required
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Company *
@@ -777,14 +786,14 @@ const CreatePortfolio: React.FC = () => {
                         placeholder="Company Name"
                         required
                       />
-                      <SuggestionChips 
+                      <SuggestionChips
                         suggestions={suggestions.companies}
                         onSelect={(company) => updateWorkExperience(exp.id, 'company', company)}
                         type="company"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid md:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -798,7 +807,7 @@ const CreatePortfolio: React.FC = () => {
                         placeholder="City, State"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Start Date
@@ -810,7 +819,7 @@ const CreatePortfolio: React.FC = () => {
                         className="input-field"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         End Date
@@ -835,7 +844,7 @@ const CreatePortfolio: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Job Description (one point per line)
@@ -850,7 +859,7 @@ const CreatePortfolio: React.FC = () => {
                 </div>
               </div>
             ))}
-            
+
             {formData.workExperience.length === 0 && (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -859,7 +868,7 @@ const CreatePortfolio: React.FC = () => {
             )}
           </div>
         );
-        
+
       case 4:
         return (
           <div className="space-y-6">
@@ -877,7 +886,7 @@ const CreatePortfolio: React.FC = () => {
                 <span>Add Project</span>
               </button>
             </div>
-            
+
             {formData.projects.map((project) => (
               <div key={project.id} className="card p-6 relative">
                 <button
@@ -887,7 +896,7 @@ const CreatePortfolio: React.FC = () => {
                 >
                   <X className="h-5 w-5" />
                 </button>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -902,7 +911,7 @@ const CreatePortfolio: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Description *
@@ -915,7 +924,7 @@ const CreatePortfolio: React.FC = () => {
                       required
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Technologies (comma-separated)
@@ -927,7 +936,7 @@ const CreatePortfolio: React.FC = () => {
                       className="input-field"
                       placeholder="React, Node.js, MongoDB, TypeScript"
                     />
-                    <SuggestionChips 
+                    <SuggestionChips
                       suggestions={suggestions.technologies.filter(tech => !project.technologies.includes(tech))}
                       onSelect={(tech) => {
                         const currentTechs = project.technologies;
@@ -938,7 +947,7 @@ const CreatePortfolio: React.FC = () => {
                       type="technology"
                     />
                   </div>
-                  
+
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -952,7 +961,7 @@ const CreatePortfolio: React.FC = () => {
                         placeholder="https://your-project.com"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         GitHub URL
@@ -966,7 +975,7 @@ const CreatePortfolio: React.FC = () => {
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Project Image URL
@@ -982,7 +991,7 @@ const CreatePortfolio: React.FC = () => {
                 </div>
               </div>
             ))}
-            
+
             {formData.projects.length === 0 && (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                 <Briefcase className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -991,7 +1000,7 @@ const CreatePortfolio: React.FC = () => {
             )}
           </div>
         );
-        
+
       case 5:
         return (
           <div className="space-y-6">
@@ -999,7 +1008,7 @@ const CreatePortfolio: React.FC = () => {
               <Award className="h-6 w-6 text-primary-600" />
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Skills & Achievements</h2>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Technical Skills (for ATS Resume)
@@ -1020,13 +1029,13 @@ const CreatePortfolio: React.FC = () => {
                   Add
                 </button>
               </div>
-              
-              <SuggestionChips 
+
+              <SuggestionChips
                 suggestions={suggestions.skills.filter(skill => !formData.technicalSkills.includes(skill))}
                 onSelect={addTechnicalSkill}
                 type="technical-skill"
               />
-              
+
               <div className="flex flex-wrap gap-2 mt-4">
                 {formData.technicalSkills.map((skill, index) => (
                   <span key={index} className="skill-badge">
@@ -1042,7 +1051,7 @@ const CreatePortfolio: React.FC = () => {
                 ))}
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 General Skills
@@ -1063,13 +1072,13 @@ const CreatePortfolio: React.FC = () => {
                   Add
                 </button>
               </div>
-              
-              <SuggestionChips 
+
+              <SuggestionChips
                 suggestions={suggestions.skills.filter(skill => !formData.skills.includes(skill))}
                 onSelect={addSkill}
                 type="skill"
               />
-              
+
               <div className="flex flex-wrap gap-2 mt-4">
                 {formData.skills.map((skill, index) => (
                   <span key={index} className="skill-badge">
@@ -1085,7 +1094,7 @@ const CreatePortfolio: React.FC = () => {
                 ))}
               </div>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Achievements
@@ -1106,13 +1115,13 @@ const CreatePortfolio: React.FC = () => {
                   Add
                 </button>
               </div>
-              
-              <SuggestionChips 
+
+              <SuggestionChips
                 suggestions={suggestions.achievements.filter(achievement => !formData.achievements.includes(achievement))}
                 onSelect={addAchievement}
                 type="achievement"
               />
-              
+
               <div className="flex flex-wrap gap-2 mt-4">
                 {formData.achievements.map((achievement, index) => (
                   <span key={index} className="achievement-badge">
@@ -1130,7 +1139,7 @@ const CreatePortfolio: React.FC = () => {
             </div>
           </div>
         );
-        
+
       case 6:
         return (
           <div className="space-y-6">
@@ -1138,7 +1147,7 @@ const CreatePortfolio: React.FC = () => {
               <Settings className="h-6 w-6 text-primary-600" />
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Final Settings</h2>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Portfolio Theme
@@ -1168,7 +1177,7 @@ const CreatePortfolio: React.FC = () => {
                 </label>
               </div>
             </div>
-            
+
             <div className="card p-6 bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800">
               <h3 className="text-lg font-semibold text-primary-900 dark:text-primary-100 mb-2">
                 Review Your Information
@@ -1189,7 +1198,7 @@ const CreatePortfolio: React.FC = () => {
                 <p><strong>Achievements:</strong> {formData.achievements.length}</p>
               </div>
             </div>
-            
+
             <div className="card p-6 bg-accent-50 dark:bg-accent-900/20 border-accent-200 dark:border-accent-800">
               <h3 className="text-lg font-semibold text-accent-900 dark:text-accent-100 mb-2">
                 📄 ATS-Friendly Resume Generation
@@ -1200,7 +1209,7 @@ const CreatePortfolio: React.FC = () => {
             </div>
           </div>
         );
-        
+
       default:
         return null;
     }
@@ -1222,18 +1231,17 @@ const CreatePortfolio: React.FC = () => {
             </p>
           )}
         </div>
-        
+
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex justify-between items-center mb-2">
             {[1, 2, 3, 4, 5, 6].map((step) => (
               <div
                 key={step}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                  step <= currentStep
-                    ? 'bg-primary-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${step <= currentStep
+                  ? 'bg-primary-600 text-white'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                  }`}
               >
                 {step}
               </div>
@@ -1246,30 +1254,29 @@ const CreatePortfolio: React.FC = () => {
             />
           </div>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="card p-8">
           {error && (
             <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
               {error}
             </div>
           )}
-          
+
           {renderStep()}
-          
+
           <div className="flex justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={prevStep}
               disabled={currentStep === 1}
-              className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-                currentStep === 1
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200'
-              }`}
+              className={`px-6 py-3 rounded-lg font-medium transition-colors ${currentStep === 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200'
+                }`}
             >
               Previous
             </button>
-            
+
             {currentStep < 6 ? (
               <button
                 type="button"
