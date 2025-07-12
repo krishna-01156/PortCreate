@@ -3,15 +3,21 @@ import { Link, useLocation } from 'react-router-dom';
 import { HdmiPort as Portfolio, Moon, Sun, LogOut, User } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+
 
 const Header: React.FC = () => {
   const { theme, toggleTheme } = useTheme();
   const { user, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+
 
   const handleSignOut = async () => {
     await signOut();
+    navigate('/login');
   };
+
 
   return (
     <header className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
@@ -23,15 +29,14 @@ const Header: React.FC = () => {
               PortCreate
             </span>
           </Link>
-          
+
           <nav className="hidden md:flex items-center space-x-8">
             <Link
               to="/"
-              className={`text-sm font-medium transition-colors ${
-                location.pathname === '/'
+              className={`text-sm font-medium transition-colors ${location.pathname === '/'
                   ? 'text-primary-600 dark:text-primary-400'
                   : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'
-              }`}
+                }`}
             >
               Home
             </Link>
@@ -39,28 +44,26 @@ const Header: React.FC = () => {
               <>
                 <Link
                   to="/create"
-                  className={`text-sm font-medium transition-colors ${
-                    location.pathname === '/create'
+                  className={`text-sm font-medium transition-colors ${location.pathname === '/create'
                       ? 'text-primary-600 dark:text-primary-400'
                       : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'
-                  }`}
+                    }`}
                 >
                   Create Portfolio
                 </Link>
                 <Link
                   to="/dashboard"
-                  className={`text-sm font-medium transition-colors ${
-                    location.pathname === '/dashboard'
+                  className={`text-sm font-medium transition-colors ${location.pathname === '/dashboard'
                       ? 'text-primary-600 dark:text-primary-400'
                       : 'text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400'
-                  }`}
+                    }`}
                 >
                   Dashboard
                 </Link>
               </>
             )}
           </nav>
-          
+
           <div className="flex items-center space-x-4">
             <button
               onClick={toggleTheme}
@@ -72,7 +75,7 @@ const Header: React.FC = () => {
                 <Sun className="h-5 w-5 text-gray-600 dark:text-gray-400" />
               )}
             </button>
-            
+
             {user ? (
               <div className="flex items-center space-x-2">
                 <div className="flex items-center space-x-2 text-sm text-gray-700 dark:text-gray-300">

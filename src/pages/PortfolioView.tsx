@@ -21,14 +21,17 @@ import { Portfolio } from '../types';
 import { generatePortfolioPDF } from '../utils/pdfGenerator';
 import { generateATSResume } from '../utils/resumeGenerator';
 import { supabase } from '../lib/supabase';
+import { useTheme } from '../contexts/ThemeContext';
+
 
 const PortfolioView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { getPortfolio } = usePortfolio();
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>('light');
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { theme, toggleTheme } = useTheme();
+
 
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -41,7 +44,6 @@ const PortfolioView: React.FC = () => {
       const contextPortfolio = getPortfolio(id);
       if (contextPortfolio) {
         setPortfolio(contextPortfolio);
-        setCurrentTheme(contextPortfolio.theme);
         
         // Apply theme to document
         if (contextPortfolio.theme === 'dark') {
@@ -66,7 +68,6 @@ const PortfolioView: React.FC = () => {
           setPortfolio(null);
         } else {
           setPortfolio(data);
-          setCurrentTheme(data.theme || 'light');
           
           // Apply theme to document
           if (data.theme === 'dark') {
@@ -85,17 +86,6 @@ const PortfolioView: React.FC = () => {
 
     fetchPortfolio();
   }, [id, getPortfolio]);
-
-  const toggleTheme = () => {
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    setCurrentTheme(newTheme);
-    
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
 
   const handleDownloadPortfolio = async () => {
     if (!portfolio) return;
@@ -159,7 +149,7 @@ const PortfolioView: React.FC = () => {
           onClick={toggleTheme}
           className="p-3 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-200"
         >
-          {currentTheme === 'light' ? (
+          {theme === 'light' ? (
             <Moon className="h-5 w-5 text-gray-600" />
           ) : (
             <Sun className="h-5 w-5 text-yellow-500" />

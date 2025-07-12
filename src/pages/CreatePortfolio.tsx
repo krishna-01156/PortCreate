@@ -47,6 +47,11 @@ const CreatePortfolio: React.FC = () => {
     technicalSkills: []
   });
 
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user]);
   // Auto-save functionality for new portfolios only
   const saveFormData = useCallback((data: FormData) => {
     if (!isEditing) {
