@@ -15,24 +15,26 @@ const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
+  const accessToken = searchParams.get('access_token');
+  const refreshToken = searchParams.get('refresh_token');
 
-    if (!accessToken || !refreshToken) {
-      // Delay error setting to avoid false flash
-      setTimeout(() => {
-        setError('Invalid reset link. Please request a new password reset.');
-      }, 200);
-      return;
-    }
-
-    supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    }).catch(() => {
-      setError('Reset link is invalid or has expired. Please request a new one.');
-    });
-  }, [searchParams]);
+  if (!accessToken || !refreshToken) {
+    setTimeout(() => {
+      const delayedAccess = searchParams.get('access_token');
+      const delayedRefresh = searchParams.get('refresh_token');
+      if (!delayedAccess || !delayedRefresh) {
+        setError('Invalid or expired reset link. Please request a new one.');
+      }
+    }, 300);
+    return;
+  }
+  supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+  }).catch(() => {
+    setError('Reset link is invalid or has expired. Please request a new one.');
+  });
+}, [searchParams]);
 
 
   const handleSubmit = async (e: React.FormEvent) => {
