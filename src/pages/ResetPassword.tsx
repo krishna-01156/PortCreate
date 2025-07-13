@@ -15,21 +15,25 @@ const ResetPassword: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if we have the necessary tokens in the URL
     const accessToken = searchParams.get('access_token');
     const refreshToken = searchParams.get('refresh_token');
-    
+
     if (!accessToken || !refreshToken) {
-      setError('Invalid reset link. Please request a new password reset.');
+      // Delay error setting to avoid false flash
+      setTimeout(() => {
+        setError('Invalid reset link. Please request a new password reset.');
+      }, 200);
       return;
     }
 
-    // Set the session with the tokens from the URL
     supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
+    }).catch(() => {
+      setError('Reset link is invalid or has expired. Please request a new one.');
     });
   }, [searchParams]);
+
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,14 +104,14 @@ const ResetPassword: React.FC = () => {
             Enter your new password below
           </p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
               {error}
             </div>
           )}
-          
+
           <div className="space-y-4">
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -133,7 +137,7 @@ const ResetPassword: React.FC = () => {
                 </button>
               </div>
             </div>
-            
+
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Confirm New Password
@@ -159,7 +163,7 @@ const ResetPassword: React.FC = () => {
               </div>
             </div>
           </div>
-          
+
           <button
             type="submit"
             disabled={loading}
