@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, X, Upload, User, GraduationCap, Briefcase, Award, Settings, Github, Linkedin, Building } from 'lucide-react';
 import { usePortfolio } from '../contexts/PortfolioContext';
@@ -161,7 +161,11 @@ const CreatePortfolio: React.FC = () => {
   }, [portfolios]);
 
   // Pre-fill form with user's most recent data for new portfolios
+  const hasInitialized = useRef(false);
   useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     if (!isEditing && portfolios.length > 0 && user) {
       // First try to load saved form data
       const hasSavedData = loadSavedFormData();
