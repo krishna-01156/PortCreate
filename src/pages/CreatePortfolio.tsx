@@ -162,18 +162,18 @@ const CreatePortfolio: React.FC = () => {
 
   // Pre-fill form with user's most recent data for new portfolios
   const hasInitialized = useRef(false);
+  const [hasStartedTyping, setHasStartedTyping] = useState(false);
+
   useEffect(() => {
-    if (hasInitialized.current) return;
+    if (hasInitialized.current || hasStartedTyping) return;
     hasInitialized.current = true;
 
+
     if (!isEditing && portfolios.length > 0 && user) {
-      // First try to load saved form data
       const hasSavedData = loadSavedFormData();
 
-      // If no saved data, use most recent portfolio data
       if (!hasSavedData) {
-        const mostRecentPortfolio = portfolios[0]; // portfolios are ordered by created_at desc
-
+        const mostRecentPortfolio = portfolios[0];
         setFormData(prev => ({
           ...prev,
           name: mostRecentPortfolio.name || '',
@@ -185,11 +185,10 @@ const CreatePortfolio: React.FC = () => {
           linkedinUrl: mostRecentPortfolio.linkedinUrl || ''
         }));
       }
-    } else if (!isEditing) {
-      // Load saved data for new portfolios without existing portfolios
+    } else if (!isEditing && userKey) {
       loadSavedFormData();
     }
-  }, [isEditing, portfolios, user, loadSavedFormData]);
+  }, [isEditing, portfolios, user, userKey, loadSavedFormData]);
 
   // Load existing portfolio data for editing
   useEffect(() => {
@@ -221,9 +220,10 @@ const CreatePortfolio: React.FC = () => {
 
   // Auto-save form data when it changes (for new portfolios only)
   useEffect(() => {
-    if (!isEditing) { // Only save if there's actual data
+    if (!isEditing && hasStartedTyping) {
       debouncedSave(formData);
     }
+
   }, [formData, debouncedSave, isEditing]);
 
   const generateUniqueId = () => {
@@ -231,8 +231,10 @@ const CreatePortfolio: React.FC = () => {
   };
 
   const handleInputChange = (field: keyof FormData, value: any) => {
+    if (!hasStartedTyping) setHasStartedTyping(true);
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
 
   const addEducation = () => {
     const newEducation: Education = {
