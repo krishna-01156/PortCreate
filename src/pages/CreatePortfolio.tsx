@@ -191,8 +191,10 @@ const CreatePortfolio: React.FC = () => {
   }, [isEditing, portfolios, user, userKey, loadSavedFormData]);
 
   // Load existing portfolio data for editing
+  const hasLoadedEditData = useRef(false);
+
   useEffect(() => {
-    if (isEditing && id) {
+    if (isEditing && id && !hasLoadedEditData.current) {
       const existingPortfolio = getPortfolio(id);
       if (existingPortfolio) {
         setFormData({
@@ -208,12 +210,12 @@ const CreatePortfolio: React.FC = () => {
           profilePhoto: existingPortfolio.profilePhoto || '',
           resumeLink: existingPortfolio.resumeLink || '',
           theme: existingPortfolio.theme || 'light',
-          // Fix the mapping here - handle both old and new field names
           githubUrl: existingPortfolio.githubUrl || existingPortfolio.github_url || '',
           linkedinUrl: existingPortfolio.linkedinUrl || existingPortfolio.linkedin_url || '',
           workExperience: existingPortfolio.workExperience || existingPortfolio.work_experience || [],
           technicalSkills: existingPortfolio.technicalSkills || existingPortfolio.technical_skills || []
         });
+        hasLoadedEditData.current = true; 
       }
     }
   }, [isEditing, id, getPortfolio]);
