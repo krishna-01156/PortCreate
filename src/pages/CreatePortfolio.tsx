@@ -223,8 +223,8 @@ const CreatePortfolio: React.FC = () => {
     if (!isEditing && hasStartedTyping) {
       debouncedSave(formData);
     }
+  }, [formData, debouncedSave, isEditing, hasStartedTyping]);
 
-  }, [formData, debouncedSave, isEditing]);
 
   const generateUniqueId = () => {
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
